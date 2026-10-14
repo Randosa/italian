@@ -23,3 +23,7 @@ a:focus-visible{outline:3px solid #b76f23;outline-offset:5px}
 .skip-link{position:absolute;left:1rem;top:-100px;background:white;padding:.75rem;z-index:10}.skip-link:focus{top:1rem}
 @media(max-width:768px){.intro{padding-top:3rem}.intro .title{font-size:2.5rem}.section-heading{align-items:flex-start}.construction-box{padding:1.5rem}.footer-note{display:block;margin:.5rem 0 0}.brand{font-size:1rem}}
 @media(prefers-reduced-motion:reduce){.activity-card{transition:none}}
+
+/* Dictionary-style introduction */
+.intro .brand-title{font-weight:800;font-size:clamp(2.75rem,9vw,5rem);line-height:1.1;margin-bottom:.6rem;letter-spacing:-.035em}
+.brand-definition{font-size:clamp(1.15rem,3vw,1.5rem);font-weight:400;color:var(--ink);margin-bottom:1.5rem}

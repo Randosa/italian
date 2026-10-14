@@ -1,4 +1,4 @@
-# Italian Input Lab
+# Im•pa•rare
 
 A simple static Italian activity directory built with HTML and Bulma. Each topic has its own placeholder page; no exercises have been implemented yet.
 
