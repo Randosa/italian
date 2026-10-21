@@ -1,70 +1,241 @@
+/*
+ * Shared controller for both comprehension activities.
+ * Content and caption positions live in chi-fa-cosa-data.js.
+ * No server or saved personal data is needed; scores last for this session.
+ */
 'use strict';
-const direct = [
- {row:0,scene:0,text:'Lo abbraccia Giulia.',cast:'Giulia: striped shirt. Marco: plain shirt.',subject:'fs',object:'ms',explain:'Giulia abbraccia Marco. «Lo» refers to Marco (one man); Giulia is the subject.'},
- {row:1,scene:1,text:'Le saluta Anna.',cast:'Giulia e Sofia: striped shirts, left. Anna: plain shirt, right.',subject:'fs',object:'fp',explain:'Anna saluta Giulia e Sofia. «Le» refers to the two women; Anna is one person.'},
- {row:2,scene:0,text:'Li insegue Giulia.',cast:'Giulia: striped shirt. Marco e Luca: plain shirts.',subject:'fs',object:'mp',explain:'Giulia insegue Marco e Luca. «Li» refers to the two men; Giulia is the subject.'},
- {row:3,scene:1,text:'Lo fotografano Anna e Sofia.',cast:'Marco: striped shirt, left. Anna e Sofia: plain shirts, right.',subject:'fp',object:'ms',explain:'Anna e Sofia fotografano Marco. «Lo» refers to one man; the two women are the subject.'},
- {row:0,scene:1,text:'Marco la abbraccia.',cast:'Giulia: striped shirt. Marco: plain shirt.',subject:'ms',object:'fs',explain:'Marco abbraccia Giulia. «La» refers to Giulia (one woman); Marco is the subject.'},
- {row:1,scene:0,text:'Giulia e Sofia la salutano.',cast:'Giulia e Sofia: striped shirts, left. Anna: plain shirt, right.',subject:'fp',object:'fs',explain:'Giulia e Sofia salutano Anna. «La» refers to one woman; the subject is two women.'},
- {row:2,scene:1,text:'Marco e Luca la inseguono.',cast:'Giulia: striped shirt. Marco e Luca: plain shirts.',subject:'mp',object:'fs',explain:'Marco e Luca inseguono Giulia. «La» refers to one woman; the two men are the subject.'},
- {row:3,scene:0,text:'Le fotografa Marco.',cast:'Marco: striped shirt, left. Anna e Sofia: plain shirts, right.',subject:'ms',object:'fp',explain:'Marco fotografa Anna e Sofia. «Le» refers to two women; Marco is one man.'}
-];
-const indirect = [
- {row:4,scene:0,text:'Giulia gli scrive.',cast:'Giulia: striped shirt, left. Marco: plain shirt, right.',subject:'fs',object:'ms',explain:'Giulia scrive a Marco. «Gli» means to him; Giulia writes and Marco receives the letter.'},
- {row:4,scene:1,text:'Marco le scrive.',cast:'Giulia: striped shirt, left. Marco: plain shirt, right.',subject:'ms',object:'fs',explain:'Marco scrive a Giulia. Indirect «le» means to her; Marco writes and Giulia receives the letter.'},
- {row:5,scene:0,text:'Le telefona Marco.',cast:'Marco: striped shirt, left. Anna: plain shirt, right. The caller taps the phone; the other person listens.',subject:'ms',object:'fs',explain:'Marco telefona ad Anna. «Le» means to her; Marco makes the call and Anna receives it.'},
- {row:5,scene:1,text:'Gli telefona Anna.',cast:'Marco: striped shirt, left. Anna: plain shirt, right. The caller taps the phone; the other person listens.',subject:'fs',object:'ms',explain:'Anna telefona a Marco. «Gli» means to him; Anna makes the call and Marco receives it.'}
-];
-const sceneAlts = [
- ['The striped woman hugs the plain-shirt man.','The plain-shirt man hugs the striped woman.'],
- ['Two striped women wave hello to one plain-shirt woman.','One plain-shirt woman waves hello to two striped women.'],
- ['The striped woman chases two plain-shirt men.','Two plain-shirt men chase the striped woman.'],
- ['The striped man photographs two plain-shirt women.','Two plain-shirt women take a photograph of the striped man.'],
- ['The striped woman writes a letter to the plain-shirt man.','The plain-shirt man writes a letter to the striped woman.'],
- ['The striped man initiates a phone call to the plain-shirt woman.','The plain-shirt woman initiates a phone call to the striped man.']
-];
-let mode='direct',items=[],index=0,score=0,attempted=false,complete=false;
-const el=id=>document.getElementById(id);
-function start(selected){
- mode=selected;items=mode==='direct'?[...direct]:mode==='indirect'?[...indirect]:[...direct,...indirect].sort(()=>Math.random()-.5);
- index=0;score=0;complete=false;
- document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
- render();
-}
-function render(){
- attempted=false;el('progress').textContent=`${index+1} / ${items.length}`;el('score').textContent=`First choices correct: ${score}`;
- el('meter').max=items.length;el('meter').value=index;el('stage').textContent=mode==='direct'?'PRONOMI DIRETTI':mode==='indirect'?'PRONOMI INDIRETTI':'RIPASSO · MIXED PRACTICE';
- const item=items[index];el('sentence').textContent=item.text;el('cast').textContent=item.cast;
- el('feedback').textContent='';el('feedback').className='feedback';el('next').hidden=true;
- el('next').textContent=index===items.length-1?'Risultati →':'Avanti →';el('choices').replaceChildren();
- const order=Math.random()<.5?[0,1]:[1,0];
- order.forEach((scene,i)=>{
-  const button=document.createElement('button');button.type='button';button.className='picture-choice';
-  button.setAttribute('aria-label',`${i===0?'A':'B'}: ${sceneAlts[item.row][scene]}`);
-  const drawing=document.createElement('span');drawing.className='scene';drawing.setAttribute('aria-hidden','true');
-  drawing.style.backgroundPosition=`${scene*100}% ${item.row*20}%`;
-  const letter=document.createElement('span');letter.className='choice-letter';letter.textContent=i===0?'A':'B';
-  button.append(drawing,letter);button.addEventListener('click',()=>choose(button,scene,item));el('choices').append(button);
- });
-}
-function choose(button,scene,item){
- if(complete)return;
- const correct=scene===item.scene;
- if(!attempted){if(correct)score++;attempted=true;el('score').textContent=`First choices correct: ${score}`;}
- if(correct){
-  el('feedback').textContent=`Esatto! ${item.explain}`;el('feedback').className='feedback correct';button.classList.add('correct');
-  el('choices').querySelectorAll('button').forEach(b=>b.disabled=true);el('next').hidden=false;el('next').focus();
- }else{
-  button.disabled=true;button.classList.add('incorrect');el('feedback').textContent='Riprova. Follow the pronoun and the named subject: who acts, and who receives?';el('feedback').className='feedback incorrect';
- }
-}
-el('next').addEventListener('click',()=>{
- index++;
- if(index<items.length){render();el('sentence').focus();return;}
- complete=true;el('meter').value=items.length;el('progress').textContent='Completed';el('sentence').textContent='Ben fatto!';el('sentence').focus();
- el('cast').textContent=`${score} / ${items.length} correct on the first choice.`;el('choices').replaceChildren();el('next').hidden=true;
- el('feedback').textContent='Reflect: did you follow the pronoun and the verb, or guess from word order? Repeat this set or choose the next tab.';
-});
-el('restart').addEventListener('click',()=>{start(mode);el('sentence').focus();});
-document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{start(button.dataset.mode);el('sentence').focus();}));
-start('direct');
+
+(() => {
+  const { scenes, questions } = window.ChiFaCosaData;
+  const element = (id) => document.getElementById(id);
+  const state = {
+    activity: 'pictures',
+    mode: 'direct',
+    items: [],
+    index: 0,
+    score: 0,
+    attempted: false,
+    answered: false,
+    complete: false,
+  };
+
+  // Fisher–Yates avoids the uneven ordering produced by a random sort comparator.
+  function shuffled(values) {
+    const result = [...values];
+    for (let index = result.length - 1; index > 0; index--) {
+      const other = Math.floor(Math.random() * (index + 1));
+      [result[index], result[other]] = [result[other], result[index]];
+    }
+    return result;
+  }
+
+  function start() {
+    const selected = questions.filter(
+      (question) => state.mode === 'mixed' || question.kind === state.mode,
+    );
+    state.items = state.mode === 'mixed' ? shuffled(selected) : selected;
+    state.index = 0;
+    state.score = 0;
+    state.complete = false;
+
+    document.querySelectorAll('[data-mode]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode));
+    });
+    document.querySelectorAll('[data-activity]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.activity === state.activity));
+    });
+    render();
+  }
+
+  // Labels belong to each panel, not each answer position: shuffling A/B must
+  // never move a name away from the person it identifies.
+  function createPicture(sceneId, panelIndex, interactive) {
+    const scene = scenes[sceneId];
+    const panel = scene.panels[panelIndex];
+    const picture = document.createElement('span');
+    picture.className = 'named-picture';
+    const drawing = document.createElement('span');
+    drawing.className = `scene scene--${scene.sheet}`;
+    drawing.style.backgroundPosition = `${panelIndex * 100}% ${scene.row * 20}%`;
+    if (interactive) {
+      drawing.setAttribute('aria-hidden', 'true');
+    } else {
+      drawing.setAttribute('role', 'img');
+      drawing.setAttribute('aria-label', panel.description);
+    }
+
+    const names = document.createElement('span');
+    names.className = 'character-names';
+    names.setAttribute('lang', 'it');
+    panel.names.forEach(({ text, at }) => {
+      const label = document.createElement('span');
+      label.className = 'character-name';
+      label.style.left = `${at}%`;
+      label.textContent = text;
+      names.append(label);
+    });
+    picture.append(drawing, names);
+    return picture;
+  }
+
+  function createChoice(label, correct, picture) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = picture ? 'picture-choice' : 'sentence-choice';
+    if (picture) {
+      button.setAttribute('aria-label', label);
+      button.append(picture);
+    }
+    const caption = document.createElement('span');
+    caption.className = 'choice-letter';
+    caption.textContent = label;
+    if (!picture) caption.setAttribute('lang', 'it');
+    button.append(caption);
+    button.addEventListener('click', () => choose(button, correct));
+    return button;
+  }
+
+  function render() {
+    state.attempted = false;
+    state.answered = false;
+    const question = state.items[state.index];
+    const scene = scenes[question.sceneId];
+    const showPictures = state.activity === 'pictures';
+    const stages = {
+      direct: 'PRONOMI DIRETTI',
+      indirect: 'PRONOMI INDIRETTI',
+      mixed: 'RIPASSO MISTO',
+    };
+
+    element('progress').textContent = `${state.index + 1} / ${state.items.length}`;
+    updateScore();
+    element('meter').max = state.items.length;
+    element('meter').value = state.index;
+    element('meter').textContent = `${state.index} / ${state.items.length}`;
+    element('stage').textContent = stages[state.mode];
+    element('sentence').textContent = showPictures ? question.text : 'Guarda la scena.';
+    element('cast').textContent = scene.note;
+    element('cast').hidden = !scene.note;
+    element('prompt').hidden = false;
+    element('prompt').textContent = showPictures
+      ? 'Quale immagine corrisponde alla frase?'
+      : 'Quale frase corrisponde all’immagine?';
+    element('feedback').textContent = '';
+    element('feedback').className = 'feedback';
+    element('next').hidden = true;
+    element('next').textContent =
+      state.index === state.items.length - 1 ? 'Risultati →' : 'Avanti →';
+    element('choices').replaceChildren();
+    element('choices').className = showPictures ? 'picture-grid' : 'sentence-grid';
+    element('scene-preview').replaceChildren();
+    element('scene-preview').hidden = showPictures;
+
+    if (showPictures) {
+      shuffled([0, 1]).forEach((panelIndex, index) => {
+        const letter = index === 0 ? 'A' : 'B';
+        const button = createChoice(
+          letter,
+          panelIndex === question.scene,
+          createPicture(question.sceneId, panelIndex, true),
+        );
+        button.setAttribute('aria-label', `${letter}: ${scene.panels[panelIndex].description}`);
+        element('choices').append(button);
+      });
+    } else {
+      element('scene-preview').append(createPicture(question.sceneId, question.scene, false));
+      // The paired sentence reverses the roles without adding unrelated vocabulary.
+      const opposite = questions.find(
+        (candidate) => candidate.sceneId === question.sceneId && candidate.scene !== question.scene,
+      );
+      shuffled([question, opposite]).forEach((candidate) => {
+        element('choices').append(createChoice(candidate.text, candidate === question));
+      });
+    }
+  }
+
+  function updateScore() {
+    element('score').textContent = `First choices correct: ${state.score}`;
+  }
+
+  function choose(button, correct) {
+    // Ignore repeat activation after an answer, including programmatic clicks.
+    if (state.complete || state.answered || button.disabled) return;
+    if (!state.attempted) {
+      if (correct) state.score++;
+      state.attempted = true;
+      updateScore();
+    }
+
+    if (correct) {
+      state.answered = true;
+      button.classList.add('correct');
+      element('feedback').className = 'feedback correct';
+      element('feedback').textContent = `Esatto! ${state.items[state.index].explain}`;
+      element('choices')
+        .querySelectorAll('button')
+        .forEach((choice) => {
+          choice.disabled = true;
+        });
+      element('next').hidden = false;
+      element('next').focus();
+    } else {
+      button.disabled = true;
+      button.classList.add('incorrect');
+      element('feedback').className = 'feedback incorrect';
+      element('feedback').textContent =
+        'Riprova. Use the names and pronoun: who acts, and who receives?';
+      // Give keyboard users an immediate route to the remaining answer.
+      element('choices')
+        .querySelectorAll('button')
+        .forEach((choice) => {
+          if (!choice.disabled) choice.focus();
+        });
+    }
+  }
+
+  element('next').addEventListener('click', () => {
+    if (!state.answered || state.complete) return;
+    state.index++;
+    if (state.index < state.items.length) {
+      render();
+    } else {
+      state.complete = true;
+      element('meter').value = state.items.length;
+      element('meter').textContent = `${state.items.length} / ${state.items.length}`;
+      element('progress').textContent = 'Completed';
+      element('sentence').textContent = 'Ben fatto!';
+      element('cast').hidden = false;
+      element('cast').textContent =
+        `${state.score} / ${state.items.length} correct on the first choice.`;
+      element('prompt').hidden = true;
+      element('choices').replaceChildren();
+      element('scene-preview').hidden = true;
+      element('next').hidden = true;
+      element('feedback').className = 'feedback';
+      element('feedback').textContent =
+        'Repeat this set, try the other activity, or choose another pronoun set.';
+    }
+    element('sentence').focus();
+  });
+
+  element('restart').addEventListener('click', () => {
+    start();
+    element('sentence').focus();
+  });
+  document.querySelectorAll('[data-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.mode = button.dataset.mode;
+      start();
+      element('sentence').focus();
+    });
+  });
+  document.querySelectorAll('[data-activity]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.activity = button.dataset.activity;
+      start();
+      element('sentence').focus();
+    });
+  });
+
+  start();
+})();
